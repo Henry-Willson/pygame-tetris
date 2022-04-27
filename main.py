@@ -68,7 +68,11 @@ def update_board():
     for i in range(1,20):
         pygame.draw.line(rect_surf,"#1f2428",(0,(i/20+1)*.8*size_y),(size_y*.4,(i/20+1)*.8*size_y),width=2)
 
-    
+    for j, row in enumerate(boardstate.boardState):
+        for i, minoColor in enumerate(row):
+            if minoColor is not None:
+                pygame.draw.rect(rect_surf, pygame.Color(minoColor)+pygame.Color(122, 122, 115), pygame.Rect(i*size_y*.04,size_y*1.6-(j+1.2)*size_y*.04,size_y*.04,size_y*.04))
+
     for j, row in enumerate(boardstate.boardState):
         for i, minoColor in enumerate(row):
             if minoColor is not None:
@@ -81,7 +85,9 @@ def update_board():
     for i in currentPiece[1]:
         pygame.draw.rect(rect_surf, currentPiece[0]+"20", pygame.Rect((drop[0]+i[0]*rotCos+i[1]*rotSin)*size_y*.04,size_y*1.6-(drop[1]-i[0]*rotSin+i[1]*rotCos+1)*size_y*.04,size_y*.04,size_y*.04))
     for i in currentPiece[1]:
-        pygame.draw.rect(rect_surf, currentPiece[0], pygame.Rect((pos[0]+i[0]*rotCos+i[1]*rotSin)*size_y*.04,size_y*1.6-(pos[1]-i[0]*rotSin+i[1]*rotCos+1)*size_y*.04,size_y*.04,size_y*.04))
+        pygame.draw.rect(rect_surf, pygame.Color(pygame.Color(currentPiece[0])+pygame.Color(122, 122, 115)).lerp("#FFFFFF",max(min(.25*(1-4*(pygame.time.get_ticks()/1000-autoLockTimer)*boardstate.pieceResting),1),0)).lerp("#000000",max(min(.4*(-1+4*(pygame.time.get_ticks()/1000-autoLockTimer)*boardstate.pieceResting),1),0)), pygame.Rect((pos[0]+i[0]*rotCos+i[1]*rotSin)*size_y*.04,size_y*1.6-(pos[1]-i[0]*rotSin+i[1]*rotCos+1.2)*size_y*.04,size_y*.04,size_y*.04))
+    for i in currentPiece[1]:
+        pygame.draw.rect(rect_surf, pygame.Color(currentPiece[0]).lerp("#FFFFFF",max(min(.25*(1-4*(pygame.time.get_ticks()/1000-autoLockTimer)*boardstate.pieceResting),1),0)).lerp("#000000",max(min(.4*(-1+4*(pygame.time.get_ticks()/1000-autoLockTimer)*boardstate.pieceResting),1),0)), pygame.Rect((pos[0]+i[0]*rotCos+i[1]*rotSin)*size_y*.04,size_y*1.6-(pos[1]-i[0]*rotSin+i[1]*rotCos+1)*size_y*.04,size_y*.04,size_y*.04))
 
 
     rect_surf = pygame.transform.rotate(rect_surf,math.degrees(angle))
@@ -97,50 +103,68 @@ holdingDown = False
 
 DASOver = False
 gravityTimer = pygame.time.get_ticks()/1000
-movementDASTimer = 0
+movementTimer = 0
+autoLockTimer = pygame.time.get_ticks()/1000
 
 running = True
 while running:
+    currentTime = pygame.time.get_ticks()/1000
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RIGHT:
                 holdingRight = True
-                boardstate.translate((1,0))
+                movementTimer = currentTime*1000
+                DASOver = False
+                if boardstate.translate((1,0)) and boardstate.pieceResting: autoLockTimer = currentTime
             elif event.key == pygame.K_LEFT:
-
                 holdingLeft = True
-                boardstate.translate((-1,0))
+                movementTimer = currentTime*1000
+                DASOver = False
+                if boardstate.translate((-1,0)) and boardstate.pieceResting: autoLockTimer = currentTime
             elif event.key == pygame.K_DOWN:
                 holdingDown = True
-                currentTime = pygame.time.get_ticks()/1000
                 moveDownAmount = int(softdropSpeed*(currentTime-gravityTimer)/(0.8-((level-1)*0.007))**(level-1))
                 gravityTimer += moveDownAmount*(0.8-((level-1)*0.007))**(level-1)/softdropSpeed
             elif event.key == pygame.K_UP:
                 rotInfo = boardstate.rotate(1)
+                if rotInfo[0] and boardstate.pieceResting: autoLockTimer = currentTime
                 if rotInfo[1] > 0:
                     size_x,size_y = screen.get_size()
-                    angleVel -= .75
+                    angleVel -= .5
                     pos = boardstate.piecePos
 
                     boardcos, boardsin = math.cos(angle),math.sin(angle)
-                    boardVel_x -= .75*(-.4+(pos[1]+.5)*.04)*math.cos(angle)
-                    boardVel_y += .75*(-.2+(pos[0]+.5)*.04)*math.sin(angle)
+                    boardVel_x -= .5*(-.4+(pos[1]+.5)*.04)*math.cos(angle)
+                    boardVel_y += .5*(-.2+(pos[0]+.5)*.04)*math.sin(angle)
             elif event.key == pygame.K_z:
                 rotInfo = boardstate.rotate(-1)
+                if rotInfo[0] and boardstate.pieceResting: autoLockTimer = currentTime
                 if rotInfo[1] > 0:
                     size_x,size_y = screen.get_size()
-                    angleVel += .75
+                    angleVel += .5
                     pos = boardstate.piecePos
 
                     boardcos, boardsin = math.cos(angle),math.sin(angle)
-                    boardVel_x += .75*(-.42+(pos[1]+.5)*.04)*math.cos(angle)
-                    boardVel_y -= .75*(-.22+(pos[0]+.5)*.04)*math.sin(angle)
+                    boardVel_x += .5*(-.42+(pos[1]+.5)*.04)*math.cos(angle)
+                    boardVel_y -= .5*(-.22+(pos[0]+.5)*.04)*math.sin(angle)
             elif event.key == pygame.K_c:
                 boardstate.nextPiece(True)
             elif event.key == pygame.K_SPACE:
+                dropPosX,dropPosY = boardstate.impulseArea(boardstate.pieceDropPos,boardstate.pieceRot,(0,-1))
+                dropPosY -= 9.5
+                dropPosX -=4.5
+                force = -2-1*math.sqrt(boardstate.piecePos[1]-boardstate.pieceDropPos[1])
+                boardcos, boardsin = math.cos(angle),math.sin(angle)
+                if (dropPosX*dropPosX+dropPosY*dropPosY) != 0:
+                    angleVel += .04*force*(dropPosX)
+                impulsex = 0
+                impulsey = force
+                boardVel_x += .04*(boardcos*impulsex-boardsin*impulsey)
+                boardVel_y -= .04*(boardsin*impulsex+boardcos*impulsey)
                 dead = boardstate.lockPiece()[0]
+                autoLockTimer = currentTime
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_RIGHT:
                 holdingRight = False
@@ -149,16 +173,35 @@ while running:
             elif event.key == pygame.K_DOWN:
                 holdingDown = False
 
-    currentTime = pygame.time.get_ticks()/1000
     if holdingDown:
-        moveDownAmount = int(softdropSpeed*(currentTime-gravityTimer)/(0.8-((level-1)*0.007))**(level-1))
+        moveDownAmount = softdropSpeed*(currentTime-gravityTimer)//(0.8-((level-1)*0.007))**(level-1)
         gravityTimer += moveDownAmount*(0.8-((level-1)*0.007))**(level-1)/softdropSpeed
     else:
-        moveDownAmount = int((currentTime-gravityTimer)/(0.8-((level-1)*0.007))**(level-1))
+        moveDownAmount = (currentTime-gravityTimer)//(0.8-((level-1)*0.007))**(level-1)
         gravityTimer += moveDownAmount*(0.8-((level-1)*0.007))**(level-1)
 
-    for i in range(moveDownAmount):
-        boardstate.translate((0,-1))
+    moved = False
+    moveSideAmount = 0
+    if holdingLeft or holdingRight:
+        if not DASOver and currentTime*1000-movementTimer > movementDAS:
+            movementTimer += movementDAS
+            DASOver = True
+        if DASOver:
+            moveSideAmount = (currentTime*1000-movementTimer)//movementARR
+            movementTimer += moveSideAmount*movementARR
+        
+        for i in range(int(moveSideAmount)):
+            if boardstate.translate((-holdingLeft+holdingRight,0)): moved = True
+
+    for i in range(int(moveDownAmount)):
+        if boardstate.translate((0,-1)): moved = True
+
+    if moved: autoLockTimer = currentTime
+
+    if currentTime-autoLockTimer>0.5 and boardstate.pieceResting:
+        boardstate.lockPiece()
+        autoLockTimer = currentTime
+
 
     screen.fill("#24292e")
     update_board()

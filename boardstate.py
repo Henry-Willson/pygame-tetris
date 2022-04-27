@@ -180,8 +180,23 @@ def nextPiece(isHold=False):
     updateRestingState()
     return True
 
+def impulseArea(pos, rotation, dir):
+    rotCos, rotSin = rotCosSin[rotation]
+    impulsePosX = 0
+    impulsePosY = 0
+    weights = 0
+    for i in pieces[pieceIndex][1]:
+        if not minoVacant((pos[0]+dir[0]+i[0]*rotCos+i[1]*rotSin,pos[1]+dir[1]-i[0]*rotSin+i[1]*rotCos)):
+            impulsePosX += pos[0]+dir[0]+i[0]*rotCos+i[1]*rotSin
+            impulsePosY += pos[1]+dir[1]-i[0]*rotSin+i[1]*rotCos
+            weights += 1
+
+    return impulsePosX/weights+dir[0]/2, impulsePosY/weights+dir[1]/2
+
 def startNewGame():
-    global bag, piecePos, pieceRot, pieceResting
+    global bag, piecePos, pieceRot, pieceResting, pieceQueue, pieceIndex, hold
+    boardState = []
+
     bag = [i for i in range(len(pieces))]
 
     piecePos = (4,20)
@@ -190,3 +205,5 @@ def startNewGame():
 
     pieceQueue = [bag.pop(random.randint(0,len(bag)-1)),bag.pop(random.randint(0,len(bag)-1)),bag.pop(random.randint(0,len(bag)-1))]
     hold = None
+
+    updateRestingState()
