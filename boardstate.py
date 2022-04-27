@@ -158,7 +158,7 @@ def lockPiece():
             clearedLines.append(j)
 
     fallenAmount = pieceDropPos == piecePos
-    return ((i[0]*rotCos+i[1]*rotSin,-i[0]*rotSin+i[1]*rotCos) for i in pieces[pieceIndex][1]), (piecePos, pieceDropPos), gameOver or not nextPiece(), linesCleared, clearedLines, len(boardState)==0, lastMove * (fallenAmount==0)
+    return pieceIndex, pieceRot, ((i[0]*rotCos+i[1]*rotSin,-i[0]*rotSin+i[1]*rotCos) for i in pieces[pieceIndex][1]), (piecePos, pieceDropPos), gameOver or not nextPiece(), linesCleared, clearedLines, len(boardState)==0, lastMove * (fallenAmount==0)
 
 def nextPiece(isHold=False):
     global piecePos, pieceRot, pieceIndex, hold, bag
@@ -191,13 +191,15 @@ def impulseArea(pos, rotation, dir):
     impulsePosX = 0
     impulsePosY = 0
     weights = 0
+    touchingEdges = []
     for i in pieces[pieceIndex][1]:
         if not minoVacant((pos[0]+dir[0]+i[0]*rotCos+i[1]*rotSin,pos[1]+dir[1]-i[0]*rotSin+i[1]*rotCos)):
             impulsePosX += pos[0]+dir[0]+i[0]*rotCos+i[1]*rotSin
             impulsePosY += pos[1]+dir[1]-i[0]*rotSin+i[1]*rotCos
             weights += 1
+            touchingEdges.append(pos[0]+dir[0]+i[0]*rotCos+i[1]*rotSin, pos[1]+dir[1]-i[0]*rotSin+i[1]*rotCos)
 
-    return impulsePosX/weights+dir[0]/2, impulsePosY/weights+dir[1]/2
+    return impulsePosX/weights+dir[0]/2, impulsePosY/weights+dir[1]/2, touchingEdges
 
 def startNewGame():
     global boardState, bag, piecePos, pieceRot, pieceResting, pieceQueue, pieceIndex, hold

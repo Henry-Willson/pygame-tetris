@@ -3,6 +3,7 @@ import pygame
 import math
 import springmath
 import boardstate
+import particles
 
 pygame.init()
 
@@ -97,6 +98,16 @@ def update_board():
             pygame.draw.line(rect_surf, "#ff4545", ((4+i[0]+.15)*size_y*.04,size_y*1.6-(20+i[1]+1-.15)*size_y*.04),((4+i[0]+1-.15)*size_y*.04,size_y*1.6-(20+i[1]+.15)*size_y*.04),width=6)
             pygame.draw.line(rect_surf, "#ff4545", ((4+i[0]+.15)*size_y*.04,size_y*1.6-(20+i[1]+.15)*size_y*.04),((4+i[0]+1-.15)*size_y*.04,size_y*1.6-(20+i[1]+1-.15)*size_y*.04),width=6)
 
+    motionBlurSurf = pygame.Surface((size_y*.4, size_y*1.6),flags=pygame.SRCALPHA)
+
+    for i in particles.getHardDropBlur():
+        pygame.draw.rect(motionBlurSurf, i[0], pygame.Rect(
+            size_y*0.04*i[1],
+            size_y*(1.6-0.04(i[2]+1)),
+            0.04,
+            size_y*(1.6-0.04*(i[3]+1))
+        ))
+
     rect_surf = pygame.transform.rotate(rect_surf,math.degrees(angle))
     offset_x,offset_y = rect_surf.get_size()
     offset_x = -0.5*offset_x+size_x/2 - .4*size_y*math.sin(angle) + boardPos_x*size_y
@@ -128,8 +139,21 @@ def dropPiece():
     impulsey = force
     boardVel_x += .04*(boardcos*impulsex-boardsin*impulsey)
     boardVel_y -= .04*(boardsin*impulsex+boardcos*impulsey)
-    pieceIndex, dropInfo, dead, clearNum, clearedLines, perfectClear, isTSpin= boardstate.lockPiece()
-    autoLockTimer = pygame.time.get_ticks()/1000
+    currentTime = pygame.time.get_ticks()/1000
+    pieceIndex, pieceRot pieceShape, dropInfo, dead, clearNum, clearedLines, perfectClear, isTSpin= boardstate.lockPiece()
+    particles.newHardDropBlur(pieceShape, dropInfo, currentTime, boardstate.pieces[pieceIndex][0])
+    particleList = []
+    for i in boardstate.impulseArea(dropInfo[1], pieceRot, (0,-1))[2]:
+        posx, posy = i[0]-5,i[1]-10
+        for i in range(random.randint(0,10)):
+            particleList.append([
+                (posx*boardcos-posy*boardsin,posx*boardsin+posy*boardcos),
+                (random.guass(0,1)-1*boardsin,random.guass(0,1)+1*boardcos),
+                random.random()*2,
+                "#FFFFFF",
+                random.uniform(.5,1)
+            ])
+    autoLockTimer = currentTime
 
 while running:
     currentTime = pygame.time.get_ticks()/1000
@@ -179,7 +203,7 @@ while running:
                 dropPiece()
             elif event.key == pygame.K_r:
                 dead=False
-                angleVel += 10*((1-random()*2>0)*2-1)
+                angleVel += 10*((1-random.random()*2>0)*2-1)
                 score = 0
                 level = 1
                 boardstate.startNewGame()
