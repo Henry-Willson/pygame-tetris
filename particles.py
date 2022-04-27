@@ -12,7 +12,7 @@ def newHardDropBlur(pieceShape, dropInfo, lifeBeginning, color):
                 (dropInfo[0][0]+i[0],dropInfo[0][1]+i[1]),
                 (dropInfo[1][0]+i[0],dropInfo[1][1]+i[1]),
                 lifeBeginning,
-                math.sqrt((dropInfo[0][1]-dropInfo[1][1]-1)/hardDropSpeed),
+                math.sqrt((dropInfo[0][1]-dropInfo[1][1])/hardDropSpeed),
                 0, # current position
                 color
             ]
@@ -50,7 +50,7 @@ def updateParticles(newTime):
         i[8] = (x/i[5]-1)**2*(1-2*x/i[5])
 
 def getHardDropBlur():
-    return [[i[5], i[0][0], i[0][1]+i[5], i[0][1]-i[1][1]-i[5]+1] for i in getHardDropBlur]
+    return [[i[5], i[0][0], i[0][1]+i[5], i[0][1]-i[1][1]-i[5]] for i in getHardDropBlur]
 
 def getScreenParticles():
     return [[i[9],i[8],i[6]] for i in screenParticles]

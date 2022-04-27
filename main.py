@@ -16,6 +16,8 @@ level = 1
 
 screen = pygame.display.set_mode((800,600),flags=pygame.RESIZABLE)
 
+sparkle = pygame.image.load("sparkle.png")
+
 icon = pygame.image.load('doggy_icon.png')
 pygame.display.set_caption("Yo wassup")
 pygame.display.set_icon(icon)
@@ -101,12 +103,14 @@ def update_board():
     motionBlurSurf = pygame.Surface((size_y*.4, size_y*1.6),flags=pygame.SRCALPHA)
 
     for i in particles.getHardDropBlur():
-        pygame.draw.rect(motionBlurSurf, i[0], pygame.Rect(
+        pygame.draw.rect(motionBlurSurf, i[0]+"80", pygame.Rect(
             size_y*0.04*i[1],
             size_y*(1.6-0.04(i[2]+1)),
             0.04,
             size_y*(1.6-0.04*(i[3]+1))
         ))
+    
+    rect_surf.blit(motionBlurSurf, (0,0)), special_flags=pygame.BLEND_RGBA_ADD)
 
     rect_surf = pygame.transform.rotate(rect_surf,math.degrees(angle))
     offset_x,offset_y = rect_surf.get_size()
@@ -114,6 +118,9 @@ def update_board():
     offset_y = -0.5*offset_y+size_y/2 - .4*size_y*math.cos(angle) + boardPos_y*size_y
 
     screen.blit(rect_surf,(offset_x,offset_y))
+    for i in particles.getScreenParticles():
+        print(":P")
+        #screen.blit(pygame.transform.smoothscale(sparkle,(size_y*.02,size_y*.02)))
 
 holdingLeft = False
 holdingRight = False
@@ -145,14 +152,15 @@ def dropPiece():
     particleList = []
     for i in boardstate.impulseArea(dropInfo[1], pieceRot, (0,-1))[2]:
         posx, posy = i[0]-5,i[1]-10
-        for i in range(random.randint(0,10)):
+        for i in range(random.randint(5,8+int(2*math.sqrt(dropInfo[0][1]-dropInfo[1][1])))):
             particleList.append([
-                (posx*boardcos-posy*boardsin,posx*boardsin+posy*boardcos),
-                (random.guass(0,1)-1*boardsin,random.guass(0,1)+1*boardcos),
+                (0.04*((posx+random.random())*boardcos-posy*boardsin),0.04*((posx+random.random())*boardsin+posy*boardcos)),
+                (random.guass(0,.02)-.04*boardsin,random.guass(0,.02)+.04*boardcos),
                 random.random()*2,
                 "#FFFFFF",
                 random.uniform(.5,1)
             ])
+    particles.newScreenParticles(particleList,currentTime,1,2)
     autoLockTimer = currentTime
 
 while running:
@@ -244,6 +252,7 @@ while running:
             dropPiece()
 
     screen.fill("#24292e")
+    particles.updateParticles()
     update_board()
 
     pygame.display.update()
