@@ -65,11 +65,13 @@ bag = [i for i in range(len(pieces))]
 piecePos = (4,20)
 pieceRot = 0
 pieceIndex = bag.pop(random.randint(0,len(bag)-1))
-pieceDropPos = (0,0)
+pieceDropPos = (4,0)
 pieceResting = False
 
 pieceQueue = [bag.pop(random.randint(0,len(bag)-1)),bag.pop(random.randint(0,len(bag)-1)),bag.pop(random.randint(0,len(bag)-1))]
 hold = None
+
+lastMove = 0
 
 def minoVacant(pos):
     return  pos[0] >= 0 and pos[0] < 10 and pos[1] >= 0 and (pos[1] >= len(boardState) or boardState[pos[1]][pos[0]] == None)
@@ -82,7 +84,7 @@ def isPosValid(pos, rotation):
     return True
 
 def rotate(dir):
-    global pieceRot, piecePos
+    global pieceRot, piecePos, lastMove
     newRot = (pieceRot+dir)%4
     for i,v in enumerate(pieces[pieceIndex][2][pieceRot]):
         newPos = (piecePos[0]+v[0]-pieces[pieceIndex][2][newRot][i][0],piecePos[1]+v[1]-pieces[pieceIndex][2][newRot][i][1])
@@ -91,6 +93,7 @@ def rotate(dir):
             pieceRot = newRot
             updateRestingState()
             if pieceIndex != 5:
+                lastMove = 0
                 return True, 0
             else: # T spin classification
                 rotCos, rotSin = rotCosSin[pieceRot]
@@ -98,15 +101,17 @@ def rotate(dir):
                 bCorner = not minoVacant((newPos[0]+1*rotCos+1*rotSin,newPos[1]-1*rotSin+1*rotCos))
                 cCorner = not minoVacant((newPos[0]-1*rotCos-1*rotSin,newPos[1]+1*rotSin-1*rotCos))
                 dCorner = not minoVacant((newPos[0]+1*rotCos-1*rotSin,newPos[1]-1*rotSin-1*rotCos))
-                return True, (aCorner+bCorner+cCorner+dCorner>=3)+(aCorner and bCorner and (cCorner or dCorner))
+                lastMove = (aCorner+bCorner+cCorner+dCorner>=3)+(aCorner and bCorner and (cCorner or dCorner))
+                return True, lastMove
     return False, 0
 
 def translate(dir):
-    global piecePos
+    global piecePos, lastMove
     newPos = (piecePos[0]+dir[0],piecePos[1]+dir[1])
     if isPosValid(newPos, pieceRot):
         piecePos = newPos
         updateRestingState()
+        lastMove=0
         return True
     else:
         return False
@@ -139,7 +144,7 @@ def lockPiece():
                 boardState.append([None for _ in range(10)])
 
         boardState[mino_y][mino_x] = pieceColor
-    
+
     clearedLines = []
     linesCleared = 0
 
@@ -152,7 +157,8 @@ def lockPiece():
             linesCleared += 1
             clearedLines.append(j)
 
-    return gameOver or not nextPiece(), linesCleared, len(boardState)== 0
+    fallenAmount = pieceDropPos == piecePos
+    return ((i[0]*rotCos+i[1]*rotSin,-i[0]*rotSin+i[1]*rotCos) for i in pieces[pieceIndex][1]), (piecePos, pieceDropPos), gameOver or not nextPiece(), linesCleared, clearedLines, len(boardState)==0, lastMove * (fallenAmount==0)
 
 def nextPiece(isHold=False):
     global piecePos, pieceRot, pieceIndex, hold, bag
@@ -194,7 +200,7 @@ def impulseArea(pos, rotation, dir):
     return impulsePosX/weights+dir[0]/2, impulsePosY/weights+dir[1]/2
 
 def startNewGame():
-    global bag, piecePos, pieceRot, pieceResting, pieceQueue, pieceIndex, hold
+    global boardState, bag, piecePos, pieceRot, pieceResting, pieceQueue, pieceIndex, hold
     boardState = []
 
     bag = [i for i in range(len(pieces))]
