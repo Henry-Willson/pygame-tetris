@@ -219,7 +219,6 @@ while running:
         if currentTime-autoLockTimer>0.5 and boardstate.pieceResting:
             dropPiece()
 
-
     screen.fill("#24292e")
     update_board()
 
